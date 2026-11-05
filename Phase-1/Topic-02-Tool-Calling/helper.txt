@@ -1,0 +1,124 @@
+Topic-02 : Tool calling
+
+🔷 The big idea : Model never runs anything
+   • The model only writes a request saying "Call this function with given arguments", your code runs the function and sends the result back to LLM via 
+     it's context memory in next call. The model never touches your code, your network or your database.
+
+🔷 The flow is round trip with 2 API calls:
+    1. You send a message + list of available tool description (Which tools are exists and their arguments).
+    2. The model replies with `finish_reason : "tool_calls"` and a request instead of final answer.
+    3. Your code runs the real function.
+    4. You sand the whole message history again + model's request and your result.
+    5. The model uses that result to generate final answer.
+
+💡 Sample tool description schema
+
+    tools = [
+        {
+            "type"     : "function",
+            "function" : {
+                "name"        : "get_order_status"
+                "description" : "Returns the customer order status based on given Order ID"
+                "parameters"  : {
+                    "type"       :  "object",
+                    "properties" : {
+                        "order_id" : {"type" : "string", "description" : "e.g. A1203"}
+                    },
+                    "required"   : "order_id"
+                }
+            }
+        }
+    ]
+
+
+🔷 How the model requests a tool call
+    • `finish_reason` is `tool_calls`.
+    • `message.content` is usually `Null`.
+    • `message.tool_calls` is a list, and each item has an `id`, and `function.name` and `function.arguments`.
+
+🔷 Tool-call ID and sending results back
+    • Each request has an `ID`. When you return the result, You must attach the same ID so the model knows which request it answers. The model for 
+      the second call looks like this:
+
+      messages = [
+           {"role": "user", "content": "Where is my order A1042?"},
+            # the model's request, appended exactly as it came back:
+           {"role": "assistant", "content": None, "tool_calls": [ ... ]},
+            # your result, one message per tool call:
+           {"role": "tool", "tool_call_id": "<the id from the request>", "content": "<result as a string>"},
+     ]
+
+🚨 3 Rules must remember:
+    1. The assistant message with the `tool_calls` must be in history, or the API rejects your `tool` message.
+    2. Every `tool_call_id` needs matching `tool` message.
+    3. `content` of tool message is string. if your function returns a dictionary, you serialize it.
+
+🔷 Sample request for tool_call by LLM.
+
+{
+  "id": "gen-1793819681-6xvuHdOcptgKJiv9FNXi",
+  "choices": [
+    {
+      "finish_reason": "tool_calls",
+      "index": 0,
+      "logprobs": null,
+      "message": {
+        "content": null,
+        "refusal": null,
+        "role": "assistant",
+        "annotations": null,
+        "audio": null,
+        "function_call": null,
+        "tool_calls": [
+          {
+            "id": "call_k6Vbm5I5I6g4cslLCefghhFM",
+            "function": {
+              "arguments": "{\"order_id\":\"B2200\"}",
+              "name": "get_order_status"
+            },
+            "type": "function",
+            "index": 0
+          }
+        ],
+        "reasoning": null
+      },
+      "native_finish_reason": "tool_calls"
+    }
+  ],
+  "created": 1793819681,
+  "model": "openai/gpt-4o-mini",
+  "object": "chat.completion",
+  "metadata": null,
+  "moderation": null,
+  "service_tier": "default",
+  "system_fingerprint": "fp_d3b38c8dc1",
+  "usage": {
+    "completion_tokens": 18,
+    "prompt_tokens": 76,
+    "total_tokens": 94,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": null,
+      "audio_tokens": 0,
+      "reasoning_tokens": 0,
+      "rejected_prediction_tokens": null,
+      "text_tokens": null,
+      "image_tokens": 0
+    },
+    "prompt_tokens_details": {
+      "audio_tokens": 0,
+      "cache_write_tokens": 0,
+      "cached_tokens": 0,
+      "image_tokens": null,
+      "text_tokens": null,
+      "video_tokens": 0
+    },
+    "cost": 2.22e-05,
+    "is_byok": false,
+    "cost_details": {
+      "upstream_inference_cost": 2.22e-05,
+      "upstream_inference_prompt_cost": 1.14e-05,
+      "upstream_inference_completions_cost": 1.08e-05
+    }
+  },
+  "provider": "OpenAI"
+}
