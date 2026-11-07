@@ -1,0 +1,55 @@
+Topic - 04 : Error Handling in AI Agents
+
+🔷 What happens when something goes wrong...?
+
+🔷 Error handling is the process of detecting these problems, responding safely and allowing the agent to recover when possible..!
+
+🔷 User : "Check the status of order A01323."
+   • The LLM requests `get_order_status`, but:
+     - It sends the wrong arguments name.
+     - It requests a tool that doesn't even exists.
+     - The database is unavailable.
+     - The tool takes too long to respond.
+   • If your agent doesn't handle these situations, it might crash completely.
+
+🔷 5 Dimentions of error handling in AI Agents.
+    1️⃣ Unknown tools
+       • Your AI Agent is requesting wrong tool that doesn't even exist in your tool kit.
+       • Solution:
+         - Check whether the tool exists before executing.
+
+    2️⃣ Bad arguments
+       • LLM Model sends wrong or bad arguments
+       • Solution:
+         - Validate the arguments before execution or catch the exception
+         - Manually validate the required fields.
+
+    3️⃣ Tool execution failure
+       • Suppose you called correct method, arguments are correct but the database is unavailable/gets-down.
+       • Or your function encounters an unexpected problem.
+       • Solution:
+         - Use `try`-`except` block for suspecious block of code that may throw error.
+
+    4️⃣ Timeouts
+       • Agent takes too much time to execute task/bring data more than usual time period.
+       • Solution:
+         - Set maximum time limit.
+    
+    5️⃣ How does the model recover ?
+       • In normal python (Non-LLM based) programming, an error might simply stop execution.
+       • But an agent has an LLM that can interpret error messages and decide what to do next.
+       • The key is that we return the error to the LLM as a tool result, rather than simply crashing the application.
+       
+🚨 ONE-HARD-RULE : Every `tool_call_id` must get a `tool` message, even when tool failed. You know what the API does otherwise. 
+
+✅ What makes a good error messaging..?
+   • The model recovers well only if the error tells it what went wrong and what to do.
+     - Bad  : "`foo`"
+     - Good : "Unknown tool `foo`, valid tool list is `get_order_status`, `get_order_details`, `fetch_user_data`."
+
+     - Bad  : "Expecting `,` delimiter at line 1 column 82."
+     - Good : "Arguments were not in valid JSON formate, Please send the valid JSON schema."
+
+💡 Two more rules.
+   • Don't leak internals. Stack traces waste tokens and can expose path and secrets.
+   • Separate retryable from not. "Timeout, try again..!" initiates a retry. "File not found..!" should not try to retry
