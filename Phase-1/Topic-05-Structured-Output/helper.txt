@@ -1,0 +1,72 @@
+Topic - 05 : Structured Output
+
+🔷 What is Structured Output .. ?
+   • Structured Output means asking LLMs to return predictable format of output instead of unpredictable text.
+   • Ex.
+     (a). Unpredictable 
+          RESPONSE : Your order A1234 has been shipped.
+
+     (b). Predictable 
+          RESPONSE : {
+                "order_id"            :  "A1234",
+                "status"              :  "Shipped",
+                "estimated_delivery"  :  "2026-11-09"
+          }
+
+🔷 JSON Schema
+   • Before asking the LLM to return structured data, we need to define what the data should look like.
+   • JSON schema is a standard way to describe the structure, data types and rules of a JSON object.
+   • Ex. 
+        ORDER_SCHEMA = {
+            "type": "object",
+            "properties": {
+                "order_id": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "Processing",
+                        "Shipped",
+                        "Delivered",
+                        "Not Found"
+                    ]
+                },
+                "estimated_delivery": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "order_id",
+                "status",
+                "estimated_delivery"
+            ],
+            "additionalProperties": False
+        }
+
+   • Without schema definition, LLM might return different properties and values at each run 
+   • But for consistent output structure, we need to define fixed output schema.
+
+🔷 JSON mode might return valid JSON but with wrong field names. whereas structured output using JSON schema can enforce the structured you define.
+
+🔷 4 Levels of getting structured output response 
+   • Level - 1 : Ask in the prompt 
+   • Level - 2 : JSON mode
+   • Level - 3 : JSON schema (strict)
+   • Level - 4 : Forced tool call
+
+⚠️ IMPORTANT:
+
+    ✅ Valid JSON must looks like this           : {"name": "ravi", "age": 25, "city": "Surat"}  
+    ❌ Python dictionary syntax (Not acceptable) : {'name' : '...', 'age' : 0, 'city' : '...'}
+
+🔷 Two separate things
+    1. `The model asks` for several tool call in one response. This is called 'parallel tool calling'.
+    2. `Our code runs them`. You run them one by one. that's sequential.
+
+    • So, parallel in the API only means the model batched its requests. It doesn't say how you run them.   
+    • The model writes the whole batch before it sees any result. So the tools in one batch can’t depend on each other.
+
+    ▣ Quick rule:
+       - Indipendent call : Fine in one batch.
+       - Dependent call   : Must be in separate iterations.

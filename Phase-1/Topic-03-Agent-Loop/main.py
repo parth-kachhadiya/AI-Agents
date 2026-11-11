@@ -307,10 +307,6 @@ def Agent(user_prompt : str, max_iterations : int = 5):
                 })
             continue
 
-        unknown = f"Unknown response type : {finish}"
-        _print_answer("Unknown finish", unknown)
-        result = {"status": "unknown_finish", "message": unknown}
-        break
     else:
         _print_answer("Stopped", result["message"])
 
