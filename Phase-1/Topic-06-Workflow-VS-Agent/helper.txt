@@ -1,0 +1,39 @@
+🔷 What is a workflow..?
+    • A workflow is predefined sequence of steps that an application follows to complete a task.
+
+🔷 Areas 
+    (1). Workflow VS Agent
+    (2). Chaining
+    (3). Routing
+    (4). Parallelisation
+    (5). Orchestrator workers
+    (6). Evaluator Optimizer
+
+🔷 What is an AI Agent.?
+    • An AI Agent is a system where the LLM dynamically decides what action to take next based on the task, available tools and previous results.
+
+🔷 5 important workflow patterns
+    (1). Chaining
+         • Connecting multiple steps in a sequence, where the output of one step become the input of the next step.
+
+    (2). Routing 
+         • Directing incomming request to the appropriate execution path based on it's category or requirements.
+
+    (3). Parallelisation
+         • Executing independent tasks at the same time instead of waiting for each task to finish sequentially.
+
+    (4). Orchestrator workers
+         • An orchestrator worker is the central component that plans a task, delegate subtasks to workers and combines the result.
+
+    (5). Evaluator Optimizer
+         • an agentic AI workflow pattern where one component (the generator or optimizer) creates or revises an output, and another component (the evaluator or critic)
+           assesses it against a set of quality criteria, running in a continuous feedback loop until the result passes or a maximum iteration limit is reached
+
+🔷 Basic Difference
+
+                              Workflow                      Agent
+• Who decides the steps ?     - Code (Fixed path)           - LLM (It picks the next step)
+• Loop ?                      - No or fixed one             - Yes, until model says done
+• Predictable ?               - 100%                        - Uncertain
+• Cost and steps              - Known                       - Unknown, it varies based on task
+
