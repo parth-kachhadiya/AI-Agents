@@ -38,7 +38,9 @@ def Sequential_Sectioning(topic : str):
     responses = []
 
     for aspect in aspects:
-        responses.append(Ask(f"Given {aspect} of {topic} in two sentences."))
+        res = Ask(f"Given {aspect} of {topic} in two sentences.")
+        responses.append(res)
+        print(f"• {res}")
 
     return "\n • ".join(responses)
 
@@ -89,7 +91,6 @@ banner("SERIAL vs PARALLEL EXECUTION")
 # ---- Serial ----
 section("SERIAL : Sectioning")
 response_a, t_serial_sec = timed(Sequential_Sectioning, TOPIC)
-show_sectioning(response_a)
 
 section("SERIAL : Voting")
 response_b, t_serial_vote = timed(Sequential_Voting, QUESTION, N_VOTES)
