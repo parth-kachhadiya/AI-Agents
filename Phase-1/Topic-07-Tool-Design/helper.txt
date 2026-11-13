@@ -1,0 +1,57 @@
+Topic - 07 : Tool Design
+
+🔷 The big idea
+    • A LLM model never sees your code. It sees only three things about a tool:
+      (1). Name
+      (2). Description (Including parameter description)
+      (3). Output schema/size
+      (4). Error message 
+
+🔷 Four parts to get right
+    (1). Name 
+         • It should say what the tool does, using a verb and an object.
+         • Weak   : `date_tool`, `process`, `handle_order`
+         • Better : `get_current_date`, `calculate_date_difference`
+         • Avoid two tools with similar names or purposes. The model will mix them up
+
+    (2). Description 
+         • Say 4 things brienfly
+         • `What` it does.?
+         • `When` to use it and when not.?
+         • `What` the argument mean with an example.
+         • `What` it returns, including units and format.
+
+    (3). Output
+         • LLM can only use what you return.
+         • Match the output to the question.
+         • Key names are the only documentation for result.
+         • Include units (`temp_c` not `temp`)
+         • Keep it short.
+
+    (4). Error messages
+         • Say what went wrong and what to do next. 
+
+🔷 Example 
+
+    TOOLS = [
+        {
+            "type"     : "function",
+            "function" : {
+                "name"        : "get_order_details",
+                "description" : (
+                    "Retrieve the current status of a customer order "
+                    "using its order ID. Use this tool when the user "
+                    "asks about order progress, shipment status, or "
+                    "delivery status. This tool only retrieves order "
+                    "information; it does not cancel or modify orders."
+                ),
+                "parameters"  : {
+                    "type"       : "object",
+                    "properties" : {
+                        "order_id" : {'type' : 'string', 'description' : 'Unique customer OrderID, e.g. A0123.'}
+                    },
+                    "required"   : ["order_id"]
+                }
+            }
+        }
+    ]
