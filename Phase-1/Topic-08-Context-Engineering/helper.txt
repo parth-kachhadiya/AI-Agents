@@ -1,0 +1,147 @@
+Topic - 8 : Context Engineering
+
+🔷 The big idea
+    • You already know the model sees only what is in messages (plus the tool schemas). Context engineering is deciding what goes into that window, 
+      and what stays out. More is not better. Every token you add costs money, and past a point it makes the model worse.
+
+
+        +-----------------------+     +-----------------------+
+        |     Conversation      |     |    Available Tools    |
+        +-----------------------+     +-----------------------+
+        +-----------------------+     +-----------------------+
+        |      Saved Facts      |     |      Tool Results     |
+        +-----------------------+     +-----------------------+
+                                   ⇓
+        +-----------------------------------------------------+
+        |                 Context Engineering                 |
+        |   • Choose, organize, compress and isolate infor-   |
+        |     -mations                                        |
+        +-----------------------------------------------------+
+                                   ⇓
+        +-----------------------------------------------------+
+        |         LLM Receives the prepared context           |
+        +-----------------------------------------------------+
+    
+    💡 The LLM still works the same way. What changes is the context you provide to it.
+    
+
+🔷 Context rot
+    • As context grows, a LLM gets less accurate at using it. it starts loosing details, especially in the middle of long inputs, even when the window isn't full.
+      So a bigger window doesn't mean you can fill it freely. the skill is to keep context small and relevant.
+
+🔷 Context Engineering Strategies
+
+    Strategy            Meaning
+    - Write             - Save information outside the window, so it doesn't have to stay in it.
+    - Select            - Put in only what's relevant for this step.
+    - Compress          - Make what's there shorter.
+    - Isolate           - Split work so each part has its own small context. 
+
+🔷 Four Failure Modes
+
+    Modes               Meaning
+    - Poisoning         - A wrong fact (a hallucination or bad tool result) gets into context, and LLM keeps building on it.
+    - Distraction       - The context is so long that the LLM leans on the history instead of thinking fresh.
+    - Confusion         - Irrelevant context, often too many tools makes the LLM pick the wrong tool.
+    - Clash             - Parts of context contradict each other.
+
+
+🔷 Three important message roles
+    (1). `System`    : Instruction
+         • Defines the assistant's behaviour, role or boundries
+         
+    (2). `User`      : User's input
+         • Represents questions, requests or information provided by the user.
+
+    (3). `Assistant` : Previous LLM response
+         • Represents what the assistant said earlier in the conversation 
+
+🔷 Memory Compression Classification
+    (1). Type - 1 : Truncation
+         • Remove old informations.
+         • Also called as sliding window when application keeps the most recent portion of history.
+
+    (2). Type - 2 : Summarisation
+         • Instead of deleting old messages, we replace them with shorter/summarized representation of their important content.
+
+    (3). Type - 3 : Tool-result compression 
+         • Remove those fields from tool result that are irrelevant or not asked by user.
+         • Approach-1 : Before storing result > Design tool to return only necessary fields.
+           Approach-2 : After storing result  > Keep full result in your full history or external storage, but LLM will receive smaller representation  of older result.
+
+    (4). Type - 4 : Structured compression
+         • Instead of asking LLM to summarize in natural language, extract important informations into structured formate.
+
+    (5). Type - 5 : Hierarchical or Incremental summarization
+         • Rolling window summarization setup
+         • Simply : Perform summarization of each 20 turns as conversation grows.
+         • Example : 1-20, 21-40, 41-60
+
+
+    💡 Which is best..?
+
+ +-----------------------------------+---------------------------------------+--------------------------------------+
+ |  Method                           |  Best use case                        |  Main risk                           |
+ +-----------------------------------+---------------------------------------+--------------------------------------+
+ |  • Truncation                     |  • Independent and short              |  • Losing old information            |
+ |                                   |    conversation                       |                                      |
+ |  • Summarisation                  |  • Long, conversational task          |  • Losing or distorting details      |
+ |  • Tool-result compression        |  • Agents using large API/tools       |  • Removing necessary data           |
+ |                                   |    outputs                            |                                      |
+ |  • Structured compression         |  • Application needing exact Facts    |  • Missing unmodelled informations   |
+ |  • Incremental Summarisation      |  • Very long conversations            |  • Accumulating  summary errors.     |
+ +-----------------------------------+---------------------------------------+--------------------------------------+
+
+🚨 Memory Compression Rules
+
+🔷 These rules apply to both normal conversations and tool-calling conversations using the Chat Completions API.
+
+ [A]. General Message Rules (Applies to Both)
+     - Every message must be a valid dictionary/object, not a JSON-encoded string.
+     - Every message must have a valid `role`, such as `system`, `user`, `assistant`, or `tool`.
+     - Preserve the chronological order of retained messages.
+     - Keep required fields intact, especially `role` and `content` for ordinary text messages.
+     - Keep system/developer instructions separate from conversation summaries.
+     - Don't change message roles during compression.
+     - Don't include unsupported fields or response-only metadata in API request messages.
+     - Ensure the final request fits within the model's context-window and output-token limits.
+
+ [B]. Non-Tool-Call Rules (Normal Conversation)
+     - "Preserve meaningful conversation order": Keep retained user messages and assistant responses in their original sequence.
+     - "Compress complete turns": Prefer removing or summarising complete user-assistant exchanges instead of randomly deleting individual messages.
+     - "No mandatory pairing": Unlike tool calls, ordinary user and assistant messages don't require matching IDs or strict one-to-one pairing.
+     - "Keep the latest request": The current user message must remain in the context.
+     - "Preserve essential facts": Summaries should retain important IDs, decisions, preferences, corrections and unresolved tasks.
+     - "Don't convert summaries into facts": A generated summary may contain errors; validate important information.
+     - "Don't modify the original history": Keep full history in storage and create a separate compressed view for API requests.
+
+ [C]. Tool-Call Pairing Rules (Critical for API Acceptance)
+     - "A tool result needs its parent": Every `role="tool"` message must correspond to a tool call in an earlier assistant message.
+     - "Every tool call needs a result": If an assistant requests 26 tools, all 26 `tool_call_id` values must receive corresponding tool-result messages.
+     - "Tool results must follow the request": Place matching tool-result messages immediately after the assistant's tool-call message, without unrelated messages between them.
+     - "IDs must match exactly": Each `tool_call_id` must equal the corresponding `tool_calls[].id`.
+     - "No duplicate responses": Don't provide multiple tool-result messages for the same tool-call ID.
+     - "Keep original IDs": Never regenerate or modify tool-call IDs during compression.
+     - "Preserve tool-call structure": Retain the assistant's `tool_calls` entries and their required function information.
+     - "Preserve argument format": Function `arguments` must remain a JSON-formatted string.
+     - "Preserve result format": Tool-result `content` must use a supported content format; JSON results are normally serialised into strings.
+     - "Don't split parallel tool calls": If one assistant message requests multiple tools, retain the assistant request and all matching results together.
+     - "Don't compress unfinished tool execution": Complete pending tool calls before compressing that portion of history.
+
+ [D]. Safe Compression Rules (Both Types)
+     - Remove old complete user turns only when their information is no longer required in the active context.
+     - Keep recent completed turns intact whenever possible.
+     - For conversations involving tools, treat the assistant tool-call request and all matching tool results as an inseparable block.
+     - If deleting an old tool exchange, remove both its assistant tool-call request and corresponding tool-result messages.
+     - If summarising an old tool exchange, replace the entire completed exchange with an ordinary summary message.
+     - Never leave orphaned `tool` messages or unanswered `tool_calls` in the compressed request.
+     - Preserve important facts, identifiers, corrections and unresolved tasks when summarising.
+     - Keep the full original history separately for recovery or future reference.
+     - Validate the compressed message structure before sending it to the API.
+     - Remember that fewer messages do not always mean fewer tokens.
+
+💡 Final Rule
+
+ - Normal Conversation: Preserve meaningful order, valid roles and essential information.
+ - Tool-Calling Conversation: Preserve everything above, plus strict tool-call/result pairing and matching IDs.
+ IMPORTANT: Some rules prevent API rejection; others protect conversation accuracy. A structurally valid compressed history can still produce incorrect answers if important context was lost.
